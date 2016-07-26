@@ -1,4 +1,4 @@
-
+import ReactSwipe from '/www/lib/node_modules/react-swipe/dist/react-swipe.js';
 // dropdown menu items
 var Dropdown = React.createClass({
 				getInitialState: function() {
@@ -64,7 +64,7 @@ var TodoList = React.createClass({
 });
 var TodoApp = React.createClass({
   getInitialState: function() {
-    return {items: [],locations: [{name: 'home'},{name: 'work'}], text: '', locationSelected: {} };
+    return {items: [],locations: [{name: 'home'},{name: 'work'}, {name: 'add location'}], text: '', locationSelected: {} };
   },
   onChange: function(e) {
     this.setState({text: e.target.value});
@@ -98,8 +98,17 @@ var TodoApp = React.createClass({
     );
   }
 });
+class Carousel extends React.Component{
+	render(){
+		return(
+			<ReactSwipe className="carousel" swipeOptions={{continuous: false}}>
+				<TodoApp/>
+			</ReactSwipe>
+		);
+	}
+}
 
 ReactDOM.render(
-  <TodoApp/>,
+  <Carousel/>,
   document.getElementById('appView')
 );

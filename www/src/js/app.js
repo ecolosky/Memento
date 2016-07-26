@@ -1,4 +1,17 @@
-
+var map;
+var opts = {
+          streetViewControl: false,
+          tilt: 0,
+          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          center: new google.maps.LatLng(42.729250, -73.678942),
+          zoom: 14,
+					disableDefaultUI:true
+        };
+function initMap() {
+	console.log('init');
+  // Create a map object and specify the DOM element for display.
+  map = new google.maps.Map(document.getElementById('map'), opts);
+}
 // dropdown menu items
 var Dropdown = React.createClass({
 				getInitialState: function() {
@@ -29,9 +42,9 @@ var Dropdown = React.createClass({
 				render: function() {
 					return <div className={"dropdown-container" + (this.state.listVisible ? " show" : "")}>
             <div className="dropdown-list">
-              <div>
+
                 {this.renderListItems()}
-              </div>
+
             </div>
 						<button className={'fa btn btn-default' + (this.state.listVisible ? " clicked": "")} onClick={this.show}>
 							<span>{this.state.selected.name}</span>
@@ -47,7 +60,10 @@ var Dropdown = React.createClass({
 						items.push(<div key={item.name} onClick={this.select.bind(null, item)}>
 							<span>{item.name}</span>
 							<i className="fa fa-square"></i>
-						</div>);
+							<hr></hr>
+						</div>
+
+					);
 					}
 					return items;
 				}
@@ -62,9 +78,9 @@ var TodoList = React.createClass({
     return <ul>{this.props.items.map(createItem)}</ul>;
   }
 });
-var TodoApp = React.createClass({
+var ToDoPane = React.createClass({
   getInitialState: function() {
-    return {items: [],locations: [{name: 'home'},{name: 'work'}], text: '', locationSelected: {} };
+    return {items: [], text: '', locationSelected: {} };
   },
   onChange: function(e) {
     this.setState({text: e.target.value});
@@ -82,8 +98,8 @@ var TodoApp = React.createClass({
   },
   render: function() {
     return (
-      <div id='appRoot' onSwiperi>
-        <h3>TODO</h3>
+      <div id='toDoPane'>
+        <h3>List</h3>
         <TodoList items={this.state.items} />
         <div className = 'btn-group'>
           <form onSubmit={this.handleSubmit}>
@@ -92,14 +108,113 @@ var TodoApp = React.createClass({
               <i className = 'fa fa-plus-square-o'></i>
             </button>
           </form>
-          <Dropdown list={this.state.locations} onSelect = {this.handleLocation}/>
+          <Dropdown list={this.props.locations}  onSelect = {this.handleLocation}/>
         </div>
       </div>
     );
   }
 });
+var Slider = React.createClass({
+	onCursorMove: function(e){
+		var element = document.getElementById('slideBar');
+		var min = element.offsetLeft - 5
+		var max = element.offsetWidth - 5 + element.offsetLeft;
+		if(e.targetTouches[0].target.id == 'cursor'){
+			// console.log(min);
+			// console.log(max);
+			if(e.targetTouches[0].clientX>min && e.targetTouches[0].clientX < max){
+				var val = e.targetTouches[0].clientX - element.offsetLeft
+				var pos = val.toString();
+				document.getElementById('cursor').style.left = pos+'px';
+				console.log(((val + 5)/element.offsetWidth) * 100, '%');
+				this.props.setVal((val + 5)/element.offsetWidth);
+			}
+		}
+	},
+	render: function() {
+		return(
+			<div className = 'slider container' id = 'slideBar'>
+				<hr>
+				</hr>
+				<div className = 'slider cursor' id = 'cursor' onTouchMove={this.onCursorMove}>
+				</div>
+			</div>
+		);
+	}
+});
+var LocationPane = React.createClass({
+  getInitialState: function() {
+    return {};
+  },
+  handleSubmit: function(e) {
+    e.preventDefault();
+    if(this.state.text != ''){
+      var nextItems = this.state.items.concat([{text: this.state.text, id: Date.now()}]);
+      var nextText = '';
+      this.setState({items: nextItems, text: nextText});
+    }
+  },
+	handleLocation: function(newLocation){
+		this.setState({locationSelected: newLocation});
+	},
+	changeRadius: function(val){
+		console.log(val);
+	},
+  render: function() {
+    return (
+      <div id='locationPane' className = 'hidePane'>
+        <h3>Location Manager</h3>
+				<div id = 'map' />
+				<div className = 'bttn clstr'>
+					<Dropdown list={this.props.locations} onSelect = {this.handleLocation}/>
+					<button className = 'fa btn btn-default add'>
+						<i className = 'fa fa-plus-square-o'></i>
+					</button>
+					<Slider setVal = {this.props.changeRadius}/>
+				</div>
+      </div>
+    );
+  }
+});
+
+var Carousel = React.createClass({
+	getInitialState: function(){
+		return {touchStart: {x: 0, y: 0}, targetTouch: '',locations: [{name: 'home'},{name: 'work'}, {name: 'add-location'}]};
+	},
+	handleSwipeStart: function(e){
+		// console.log(e.changedTouches[0].clientX);
+		// console.log(e.changedTouches[0].clientY);
+		this.setState({touchStart:{x:e.changedTouches[0].clientX,y:e.changedTouches[0].clientY}});
+		this.setState({targetTouch: e.targetTouches[0].target.id});
+		// console.log(e);
+	},
+	handleSwipeEnd: function(e){
+		if(this.state.touchStart.x - e.changedTouches[0].clientX >= 50 && this.state.targetTouch == 'toDoPane'){
+			console.log('swipe left');
+			document.getElementById('toDoPane').setAttribute('class', 'hidePane');
+			document.getElementById('locationPane').setAttribute('class', 'showPane');
+			initMap();
+		}
+		if(this.state.touchStart.x - e.changedTouches[0].clientX <= -50 && this.state.targetTouch == 'locationPane'){
+			console.log('swipe right');
+			document.getElementById('toDoPane').setAttribute('class', 'showPane');
+			document.getElementById('locationPane').setAttribute('class', 'hidePane');
+		}
+	},
+	render: function(){
+
+		return(
+			<div id='appRoot' onTouchStart={this.handleSwipeStart} onTouchEnd={this.handleSwipeEnd}>
+				<ToDoPane locations = {this.state.locations}/>
+				<LocationPane locations = {this.state.locations}/>
+			</div>
+		);
+
+	}
+
+});
 
 ReactDOM.render(
-  <TodoApp/>,
+  <Carousel/>,
   document.getElementById('appView')
 );
