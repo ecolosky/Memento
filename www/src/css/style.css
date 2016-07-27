@@ -30,6 +30,7 @@ div#locationPane {
     position: absolute;
     width: 67%;
     font-size: 1.2em;
+    z-index: 2;
     background: lightgray; }
   div#locationPane .slider.container {
     width: 70%;
@@ -42,6 +43,7 @@ div#locationPane {
     border: 2px solid;
     background: white;
     border-radius: 10px;
+    z-index: 1;
     position: relative;
     top: -15.5px;
     left: 0; }

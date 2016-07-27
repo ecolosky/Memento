@@ -10,7 +10,7 @@ var opts = {
 function initMap() {
 	console.log('init');
   // Create a map object and specify the DOM element for display.
-  map = new google.maps.Map(document.getElementById('map'), opts);
+
 }
 // dropdown menu items
 var Dropdown = React.createClass({
@@ -59,7 +59,6 @@ var Dropdown = React.createClass({
 						var item = this.props.list[i];
 						items.push(<div key={item.name} onClick={this.select.bind(null, item)}>
 							<span>{item.name}</span>
-							<i className="fa fa-square"></i>
 							<hr></hr>
 						</div>
 
@@ -126,7 +125,6 @@ var Slider = React.createClass({
 				var val = e.targetTouches[0].clientX - element.offsetLeft
 				var pos = val.toString();
 				document.getElementById('cursor').style.left = pos+'px';
-				console.log(((val + 5)/element.offsetWidth) * 100, '%');
 				this.props.setVal((val + 5)/element.offsetWidth);
 			}
 		}
@@ -142,6 +140,8 @@ var Slider = React.createClass({
 		);
 	}
 });
+
+
 var LocationPane = React.createClass({
   getInitialState: function() {
     return {};
@@ -155,16 +155,13 @@ var LocationPane = React.createClass({
     }
   },
 	handleLocation: function(newLocation){
-		this.setState({locationSelected: newLocation});
-	},
-	changeRadius: function(val){
-		console.log(val);
+		this.props.panTo(newLocation);
 	},
   render: function() {
     return (
-      <div id='locationPane' className = 'hidePane'>
+      <div id='locationPane' className = 'hidePane' >
         <h3>Location Manager</h3>
-				<div id = 'map' />
+				<div id = 'map' ></div>
 				<div className = 'bttn clstr'>
 					<Dropdown list={this.props.locations} onSelect = {this.handleLocation}/>
 					<button className = 'fa btn btn-default add'>
@@ -172,14 +169,34 @@ var LocationPane = React.createClass({
 					</button>
 					<Slider setVal = {this.props.changeRadius}/>
 				</div>
+
       </div>
+
     );
   }
 });
 
 var Carousel = React.createClass({
 	getInitialState: function(){
-		return {touchStart: {x: 0, y: 0}, targetTouch: '',locations: [{name: 'home'},{name: 'work'}, {name: 'add-location'}]};
+		return {
+			touchStart: {x: 0, y: 0},
+			targetTouch: '',
+			createdMap: false,
+			circleMap: {},
+			selectedLoc: {},
+			locations: [
+				{name: ''},
+				{name: 'home',
+				center: {lat: 42.950040, lng: -77.588811},
+				radius: 5},
+				{name: 'work',
+				center: {lat: 42.952164, lng: -77.588868},
+				radius: 5},
+				{name: 'pool house',
+				center: {lat: 42.957364, lng: -77.568422},
+				radius: 5}
+			]
+		};
 	},
 	handleSwipeStart: function(e){
 		// console.log(e.changedTouches[0].clientX);
@@ -193,7 +210,25 @@ var Carousel = React.createClass({
 			console.log('swipe left');
 			document.getElementById('toDoPane').setAttribute('class', 'hidePane');
 			document.getElementById('locationPane').setAttribute('class', 'showPane');
-			initMap();
+			if(!this.state.createdMap){
+				console.log('init map');
+				map = new google.maps.Map(document.getElementById('map'), opts);
+				this.setState({createdMap: true});
+				for (var i in this.state.locations){
+					var loc = this.state.locations[i];
+					this.state.circleMap[loc.name] = new google.maps.Circle({
+            strokeColor: '#3366ff',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#3366ff',
+            fillOpacity: 0.35,
+            map: map,
+						draggable: true,
+            center: loc.center,
+            radius: loc.radius
+          });
+				}
+			}
 		}
 		if(this.state.touchStart.x - e.changedTouches[0].clientX <= -50 && this.state.targetTouch == 'locationPane'){
 			console.log('swipe right');
@@ -201,12 +236,20 @@ var Carousel = React.createClass({
 			document.getElementById('locationPane').setAttribute('class', 'hidePane');
 		}
 	},
+	changeRadius: function(val){
+		console.log(this.state.circleMap[this.state.selectedLoc.name].radius);
+		this.state.circleMap[this.state.selectedLoc.name].setRadius(val * 100);
+	},
+	panTo: function(location){
+		map.panTo(this.state.circleMap[location.name].getCenter());
+		this.setState({selectedLoc: location});
+	},
 	render: function(){
 
 		return(
 			<div id='appRoot' onTouchStart={this.handleSwipeStart} onTouchEnd={this.handleSwipeEnd}>
 				<ToDoPane locations = {this.state.locations}/>
-				<LocationPane locations = {this.state.locations}/>
+				<LocationPane panTo = {this.panTo} locations = {this.state.locations} changeRadius = {this.changeRadius}/>
 			</div>
 		);
 
